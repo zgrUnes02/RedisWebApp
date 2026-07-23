@@ -1,7 +1,7 @@
 ﻿namespace Application.Features.Cars.DTOs;
 
 public record CreateCarRequestDto(
-    string Make,
+    string Brand,
     string Model,
     int Year
 );

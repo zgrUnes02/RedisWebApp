@@ -16,30 +16,75 @@ public class CarRepository : ICarRepository
         _context = context;
     }
 
-    public Task<Car> CreateCarAsync(CreateCarRequestDto car, CancellationToken cancellationToken)
+    public async Task<Car> CreateCarAsync(CreateCarRequestDto request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var car = new Car
+        {
+            Id = Guid.NewGuid(),
+            Brand = request.Brand,
+            Model = request.Model,
+            Year = request.Year
+        };
+
+        await _context.Cars.AddAsync(car);
+        await _context.SaveChangesAsync();
+
+        return car;
     }
 
-    public Task<bool> DeleteCarAsync(string id, CancellationToken cancellationToken)
+    public async Task<bool> DeleteCarAsync(string id, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (!Guid.TryParse(id, out var carId))
+        {
+            return false;
+        }
+
+        var deleteCar = await _context.Cars
+            .Where(c => c.Id == carId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        return deleteCar > 0;
     }
 
     public async Task<List<Car>?> GetAllCarsAsync(CancellationToken cancellationToken)
     {
-        var cars = await _context.Cars.ToListAsync();
+        var cars = await _context.Cars
+            .AsNoTracking()
+            .ToListAsync();
         return cars;
     }
 
     public async Task<Car?> GetOneCarAsync(string id, CancellationToken cancellationToken)
     {
-        var car = await _context.Cars.FirstOrDefaultAsync(c => c.Id.ToString() == id);
+        var car = await _context.Cars
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id.ToString() == id);
         return car;
     }
 
-    public Task<Car> UpdateCarAsync(string id, UpdateCarRequestDto car, CancellationToken cancellationToken)
+    public async Task<Car?> UpdateCarAsync(string id, UpdateCarRequestDto request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (!Guid.TryParse(id, out var carId))
+        {
+            return null;
+        }
+
+        var car = await _context.Cars
+            .FirstOrDefaultAsync(c => c.Id == carId, cancellationToken);
+
+        if (car is null)
+        {
+            return null;
+        }
+
+        // Update properties
+        car.Brand = request.Brand;
+        car.Model = request.Model;
+        car.Year = request.Year;
+
+        // Save asynchronously with cancellation token
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return car;
     }
 }
