@@ -7,15 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Features\Cars\Commands\" />
-    <Folder Include="Features\Cars\Validators\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="Features\Cars\DTOs\UpdateCarRequestDto.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageReference Include="Mapster" Version="10.0.11" />
     <PackageReference Include="MediatR" Version="14.2.0" />
   </ItemGroup>
