@@ -4,6 +4,7 @@ using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Infrastructure.Repositories;
 
@@ -70,10 +71,22 @@ public class CarRepository : ICarRepository
 
     public async Task<Car?> GetOneCarAsync(string id, CancellationToken cancellationToken)
     {
-        var car = await _context.Cars
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id.ToString() == id);
-        return car;
+        var cachedCarKey = $"{carCachKey}:{id}";
+
+        var cachedCar = await _redisCacheService.GetAsync<Car>(cachedCarKey);
+
+        if (cachedCar is null)
+        {
+            var car = await _context.Cars
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id.ToString() == id);
+
+            await _redisCacheService.SetAsync(cachedCarKey, car, TimeSpan.FromMinutes(1));
+
+            return car;
+        }
+
+        return cachedCar;
     }
 
     public async Task<Car?> UpdateCarAsync(string id, UpdateCarRequestDto request, CancellationToken cancellationToken)
