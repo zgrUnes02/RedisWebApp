@@ -10,10 +10,13 @@ namespace Infrastructure.Repositories;
 public class CarRepository : ICarRepository
 {
     private readonly ApplicationDbContext _context;
+    private readonly ICacheService _redisCacheService;
+    private readonly string carCachKey = "cars";
 
-    public CarRepository(ApplicationDbContext context)
+    public CarRepository(ApplicationDbContext context, ICacheService redisCacheService)
     {
         _context = context;
+        _redisCacheService = redisCacheService;
     }
 
     public async Task<Car> CreateCarAsync(CreateCarRequestDto request, CancellationToken cancellationToken)
@@ -48,10 +51,21 @@ public class CarRepository : ICarRepository
 
     public async Task<List<Car>?> GetAllCarsAsync(CancellationToken cancellationToken)
     {
-        var cars = await _context.Cars
-            .AsNoTracking()
-            .ToListAsync();
-        return cars;
+        var cachedCars = await _redisCacheService.GetAsync<List<Car>>(carCachKey);
+
+        if(cachedCars is null)
+        {
+            var cars = await _context.Cars
+                .AsNoTracking()
+                .ToListAsync();
+
+            await _redisCacheService.SetAsync(carCachKey, cars, TimeSpan.FromMinutes(1));
+
+            return cars;
+        }
+
+        return cachedCars;
+
     }
 
     public async Task<Car?> GetOneCarAsync(string id, CancellationToken cancellationToken)
